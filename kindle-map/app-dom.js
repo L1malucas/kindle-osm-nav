@@ -50,8 +50,10 @@
     route: null,      // decoded route.js
     routeId: null,
     routeLoading: null,
-    autoZoom: true,   // navigation picks zoom/centre; +/- turns it off, SEGUIR back on
-    viewKey: ''
+    autoZoom: true,   // navigation picks zoom; +/- turns it off, SEGUIR back on
+    zoomWant: null,
+    zoomWantCount: 0,
+    lastTilesZoom: null
   };
 
   /* ---------------------------------------------------------------- utils */
@@ -179,11 +181,14 @@
     return img;
   }
 
-  // Full E Ink refresh after the map moved: wait until the new tiles are drawn,
-  // then ask the receiver (eips -f). One small request per re-centre only.
-  var refreshTimer = null, refreshDeadline = 0;
-  function requestFullRefresh(images) {
+  // E Ink refresh after the map moved (the panel otherwise keeps the old map):
+  // wait until the new tiles are drawn, then ask the receiver to run eips.
+  // partial = no flash, every move; full = flash, on zoom change or every 30 s.
+  var FULL_EVERY_MS = 30000;
+  var refreshTimer = null, refreshDeadline = 0, lastFullMs = 0, pendingFull = false;
+  function requestRefresh(images, zoomChanged) {
     if (refreshTimer) { window.clearTimeout(refreshTimer); }
+    if (zoomChanged) { pendingFull = true; }
     refreshDeadline = now() + 2500;
     function check() {
       var i, pending = 0;
@@ -191,8 +196,10 @@
       if (pending > 0 && now() < refreshDeadline) { refreshTimer = window.setTimeout(check, 150); return; }
       refreshTimer = window.setTimeout(function () {
         refreshTimer = null;
+        var full = pendingFull || now() - lastFullMs >= FULL_EVERY_MS;
+        if (full) { lastFullMs = now(); pendingFull = false; }
         var beacon = new Image();
-        beacon.src = RECEIVER + '/api/refresh?t=' + now();
+        beacon.src = RECEIVER + '/api/refresh?mode=' + (full ? 'full' : 'partial') + '&t=' + now();
       }, 250);
     }
     check();
@@ -220,8 +227,10 @@
     }
     var key = state.zoom + ':' + Math.round(left) + ':' + Math.round(top);
     if (key !== state.lastTilesKey) {
+      var zoomChanged = state.zoom !== state.lastTilesZoom;
       state.lastTilesKey = key;
-      requestFullRefresh(shown);
+      state.lastTilesZoom = state.zoom;
+      requestRefresh(shown, zoomChanged);
     }
   }
 
@@ -275,13 +284,6 @@
     drawTrail();
     placeMarker();
     updateNote();
-  }
-
-  function needsRecentre() {
-    if (!state.follow || !state.fix) { return false; }
-    var p = screenPoint(state.fix.lat, state.fix.lon);
-    var mx = state.width * 0.22, my = state.mapHeight * 0.22;
-    return p.x < mx || p.x > state.width - mx || p.y < my || p.y > state.mapHeight - my;
   }
 
   function centreOnFix() {
@@ -355,7 +357,6 @@
     state.route = { id: r.id, profile: r.profile, pts: pts, cum: r.cum, maneuvers: r.maneuvers || [], dest: r.dest };
     state.routeId = r.id;
     state.autoZoom = true;
-    state.viewKey = '';
     if (!viewForNav(true)) { redraw(); }
   }
 
@@ -365,7 +366,7 @@
     var is = navActive();
     if (!is) {
       if (was) {
-        state.route = null; state.routeId = null; state.viewKey = '';
+        state.route = null; state.routeId = null;
         layout(); redraw();
       }
       return;
@@ -476,47 +477,69 @@
     }
   }
 
-  // Auto view, north up. Returns true when it redrew the map.
+  // Position always at the centre (north up). Zoom from speed, or framed on the
+  // next turn when it is close. Returns true when it redrew the map.
+  var MOVE_PX = 4;
+
+  function speedZoom(car, kmh) {
+    if (car) { return kmh <= 35 ? 17 : (kmh <= 65 ? 16 : 15); }
+    return kmh <= 25 ? 17 : 16;
+  }
+
+  // Speed zoom with hysteresis: +-3 km/h around band edges keeps the current
+  // zoom, and a change must be asked by 2 fixes in a row.
+  function autoSpeedZoom(car) {
+    var kmh = (typeof state.fix.speed === 'number' ? state.fix.speed : 0) * 3.6;
+    var cur = state.zoom;
+    var want = speedZoom(car, kmh);
+    if (speedZoom(car, kmh - 3) === cur || speedZoom(car, kmh + 3) === cur) { want = cur; }
+    if (want === cur) { state.zoomWant = null; state.zoomWantCount = 0; return cur; }
+    if (state.zoomWant === want) { state.zoomWantCount += 1; } else { state.zoomWant = want; state.zoomWantCount = 1; }
+    return state.zoomWantCount >= 2 ? want : cur;
+  }
+
+  // Largest zoom (<= 17) where the turn fits on screen with the position centred.
+  function turnZoom(n) {
+    var z, fix = state.fix;
+    for (z = Math.min(maxZoom(), 17); z > 13; z -= 1) {
+      var a = world(fix.lat, fix.lon, z), b = world(n.lat, n.lon, z);
+      if (Math.abs(a.x - b.x) < state.width * 0.42 && Math.abs(a.y - b.y) < state.mapHeight * 0.42) { break; }
+    }
+    return z;
+  }
+
+  function movedEnough() {
+    var p = screenPoint(state.fix.lat, state.fix.lon);
+    var dx = p.x - state.width / 2, dy = p.y - state.mapHeight / 2;
+    return dx * dx + dy * dy >= MOVE_PX * MOVE_PX;
+  }
+
+  function applyView(z, force) {
+    var zoomChanged = z !== state.zoom;
+    var moved = movedEnough();
+    if (!force && !zoomChanged && !moved) { return false; }
+    state.zoom = z;
+    state.center = { lat: state.fix.lat, lon: state.fix.lon };
+    redraw();
+    return true;
+  }
+
   function viewForNav(force) {
-    if (!navActive() || !state.route || !state.fix || !state.follow || !state.autoZoom) { return false; }
-    var car = state.route.profile === 'car';
-    var zMax = Math.min(maxZoom(), car ? 16 : 17);
-    var near = car ? 400 : 250;
-    var fix = state.fix, n = state.nav.next, z, center, key;
-    if (n && typeof n.dist_m === 'number' && n.dist_m <= near && state.nav.state === 'active') {
-      // frame position and the turn together, as close as possible
-      for (z = Math.min(maxZoom(), 17); z > 13; z -= 1) {
-        var a = world(fix.lat, fix.lon, z), b = world(n.lat, n.lon, z);
-        if (Math.abs(a.x - b.x) < state.width * 0.62 && Math.abs(a.y - b.y) < state.mapHeight * 0.62) { break; }
+    if (!navActive() || !state.route || !state.fix || !state.follow) { return false; }
+    var z = state.zoom;
+    if (state.autoZoom) {
+      var car = state.route.profile === 'car';
+      var near = car ? 400 : 250;
+      var n = state.nav.next;
+      if (n && typeof n.dist_m === 'number' && n.dist_m <= near && state.nav.state === 'active') {
+        z = turnZoom(n);
+        state.zoomWant = null; state.zoomWantCount = 0;
+      } else {
+        z = Math.min(maxZoom(), autoSpeedZoom(car));
       }
-      center = { lat: (fix.lat + n.lat) / 2, lon: (fix.lon + n.lon) / 2 };
-      key = 'turn:' + n.lat + ',' + n.lon + ':' + z;
-    } else {
-      z = zMax;
-      center = { lat: fix.lat, lon: fix.lon };
-      if (typeof fix.course === 'number' && typeof fix.speed === 'number' && fix.speed > 1) {
-        // look ahead: put the position ~25% behind the centre in the travel direction
-        var mpp = 156543.03 * Math.cos(fix.lat * Math.PI / 180) / Math.pow(2, z);
-        var ahead = state.mapHeight * 0.25 * mpp;
-        var c = fix.course * Math.PI / 180;
-        center = { lat: fix.lat + Math.cos(c) * ahead / 111320,
-                   lon: fix.lon + Math.sin(c) * ahead / (111320 * Math.cos(fix.lat * Math.PI / 180)) };
-      }
-      key = 'follow';
+      if (z !== state.zoom) { setActive('btn-overview', false); setActive('btn-detail', false); }
     }
-    var p = screenPoint(fix.lat, fix.lon);
-    var mx = state.width * 0.2, my = state.mapHeight * 0.2;
-    var outside = p.x < mx || p.x > state.width - mx || p.y < my || p.y > state.mapHeight - my;
-    if (force || z !== state.zoom || key !== state.viewKey || outside) {
-      setActive('btn-overview', false);
-      setActive('btn-detail', false);
-      state.zoom = z;
-      state.center = center;
-      state.viewKey = key;
-      redraw();
-      return true;
-    }
-    return false;
+    return applyView(z, force);
   }
 
   /* ---------------------------------------------------------- status UI */
@@ -647,12 +670,11 @@
       }
       return;
     }
-    if (first && state.follow) {
-      centreOnFix();
-      redraw();
-    } else if (needsRecentre()) {
-      centreOnFix();
-      redraw();
+    if (state.follow && applyView(state.zoom, first)) {
+      return;
+    } else if (state.follow) {
+      placeMarker();
+      updateNote();
     } else {
       // Only the marker and new crumb move: small partial refresh.
       drawTrail();
@@ -739,7 +761,6 @@
     setActive('btn-follow', state.follow);
     if (state.follow) {
       state.autoZoom = true;
-      state.viewKey = '';
       if (!viewForNav(true) && state.fix) { centreOnFix(); redraw(); }
     }
   }

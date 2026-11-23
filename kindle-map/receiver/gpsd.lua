@@ -479,13 +479,22 @@ local function handle()
   end
 
   if path == "/api/refresh" and is_local then
-    -- Full E Ink refresh from the current framebuffer, asked by the WAF after it
-    -- re-centred the map (partial updates leave the old map on the panel).
-    -- At most once every 4 s; runs detached so the reply is immediate.
-    local last = tonumber(read_file(RUN .. "/refresh.ts") or "0") or 0
-    if os.time() - last >= 4 then
-      write_atomic(RUN .. "/refresh.ts", tostring(os.time()))
-      os.execute("(/usr/sbin/eips -s w=600,h=800 -f) </dev/null >/dev/null 2>&1 &")
+    -- E Ink refresh from the current framebuffer, asked by the WAF after the
+    -- map moved (partial updates by the system leave the old map on the panel).
+    --   mode=partial  no flash, every move, at most 1/s
+    --   mode=full     flash (clears ghosting), at most every 4 s
+    local full = query.mode ~= "partial"
+    local stamp = RUN .. (full and "/refresh-full.ts" or "/refresh-partial.ts")
+    local last = tonumber(read_file(stamp) or "0") or 0
+    if os.time() - last >= (full and 4 or 1) then
+      write_atomic(stamp, tostring(os.time()))
+      os.execute("(/usr/sbin/eips -s w=600,h=800" .. (full and " -f" or "") ..
+        ") </dev/null >/dev/null 2>&1 &")
+      local f = io.open(RUN .. "/refresh.log", "a")
+      if f then
+        if (f:seek("end") or 0) < 65536 then f:write(os.date("%H:%M:%S "), full and "full\n" or "partial\n") end
+        f:close()
+      end
     end
     respond(204, "text/plain", "")
     return

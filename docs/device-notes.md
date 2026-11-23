@@ -32,7 +32,7 @@ com jailbreak SpringBreak e SSH pelo Jobman.
 
   Não foi isolado qual dessas mudanças foi a decisiva. O toque chega como `mousedown`, `mouseup` e `click`, e `ontouchstart` não existe.
 - **XHR liga o spinner do sistema:** cada XHR dispara o indicador de atividade (`SpinnerHelper` no log), e com polling constante a interface fica "ocupada" e engole toques. Por isso o app **lê o estado por `<script src="location.js?t=...">`**, um arquivo em `/tmp`, por symlink, que o receptor reescreve. Não há XHR no laço principal.
-- **Refresh do E Ink:** depois de recentralizar o mapa, o painel pode continuar mostrando o mapa antigo, embora o `/dev/fb0` esteja correto. `eips -s w=600,h=800 -f` faz uma atualização completa a partir do conteúdo desenhado (~0,7 s). O app pede isso ao receptor por `/api/refresh`, no máximo a cada 4 s.
+- **Refresh do E Ink:** depois que o mapa se move, o painel pode continuar mostrando o mapa antigo, embora o `/dev/fb0` esteja correto. `eips -s w=600,h=800` faz uma atualização **parcial** da tela inteira a partir do conteúdo desenhado, sem piscar e retornando na hora; com `-f`, faz uma atualização **completa** (~0,7 s, com piscada). O app pede ao receptor por `/api/refresh?mode=partial|full`: parcial a cada passo (no máximo 1/s) e completa a cada ~30 s ou ao mudar o zoom (no máximo a cada 4 s). Os disparos ficam em `/tmp/kindlemap/refresh.log`.
 - **Energia:** `lipc-set-prop com.lab126.powerd preventScreenSaver 1` mantém a tela acesa, mas **também desativa o botão de energia**. Por isso é opt-in, ativado pelo arquivo `keep-awake`.
 
 ## Rede

@@ -46,6 +46,7 @@
 | `GET /api/route` | Rota atual (`pts` em graus×1e6, `cum` m, `maneuvers`) | sim (remoto) |
 | `POST /api/route/cancel` | Encerra a navegação | sim (remoto) |
 | `GET /api/nav` | Estado: `none/calculating/rerouting/active/arrived/error`, próxima manobra, restante, ETA | sim (remoto) |
+| `GET /api/refresh?mode=partial\|full` | Só local (o próprio app): pede ao `eips` uma atualização parcial (≤ 1/s) ou completa (≤ 1 a cada 4 s) da tela | local |
 | `GET /` | Página de ajuda | não |
 
 Respostas: `200` com corpo `[]` quando aceito (formato que o OwnTracks espera); `400` em payload inválido/fora de faixa; `401` sem token; `413` acima de 16 KiB. O token pode ir como `?token=`, cabeçalho `X-Token`, `Authorization: Bearer` ou como senha no Basic auth (OwnTracks).

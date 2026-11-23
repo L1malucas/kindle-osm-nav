@@ -52,8 +52,8 @@ celular (navegador /nav)      ──HTTP──▶   ├─ nav.lua    progresso,
   No KT4, uma rota de 11,7 km sai em ~3,8 s.
 - **Na tela:**
   - painel com seta, distância e instrução com nome da rua, mais o aviso "depois…" quando a curva seguinte vem logo em seguida;
-  - trajeto em linha preta, com o norte para cima;
-  - zoom automático que aproxima e enquadra a curva quando ela chega perto;
+  - trajeto em linha preta, com o norte para cima e **você sempre no centro**: o mapa desliza a cada posição;
+  - zoom automático pela velocidade (bicicleta: z17 até 25 km/h, z16 acima; moto/carro: z17 até 35, z16 até 65, z15 acima) e, perto da curva (≤ 250 m bicicleta, ≤ 400 m carro), o maior zoom em que a curva cabe na tela;
   - recálculo automático se você sair da rota e aviso de chegada.
 - **Destino:** página `/nav` no celular, com busca offline por rua (com o bairro), bairro ou lugar, sem número de casa.
 
@@ -133,7 +133,7 @@ O simulador pede a rota, percorre o trajeto como um celular e, no fix 20, sai da
 - **iOS:** o OwnTracks em segundo plano depende da permissão de localização. HTTP sem TLS para IP local não foi testado no iPhone.
 - **Qualidade das instruções:** depende dos dados do OSM. Ruas sem nome geram instruções sem nome, e mudanças de grafia são ignoradas.
 - **Busca:** não tem número de casa.
-- **Atualização da tela:** depois que o mapa recentraliza, o app pede uma atualização completa da tela (`eips -f`), no máximo a cada 4 s. Entre uma e outra, pode sobrar o "fantasma" típico do E Ink.
+- **Atualização da tela:** a cada passo do mapa, o app pede uma atualização parcial sem piscar (`eips`, ~a cada 2 s em movimento) e uma piscada completa (`eips -f`) a cada ~30 s ou ao mudar o zoom. Entre as piscadas pode sobrar um pouco do "fantasma" típico do E Ink. Parado (deslocamento < 4 px), o mapa não é redesenhado.
 - **Jobman por cima do mapa:** abrir o Jobman durante o uso desliga a barra de status e o mapa fica por baixo. Rode **Iniciar** de novo.
 
 ## Licenças
