@@ -1,0 +1,11 @@
+# generated data (published as a Release asset, ODbL)
+build/
+.cache/
+kindle-map/map-pack/
+# local only: third-party jailbreak files and personal notes
+.springbreak/
+plano-melhoria-kindle.md
+# OS / editors
+.DS_Store
+._*
+__pycache__/
