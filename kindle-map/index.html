@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mapa Kindle</title>
+<style type="text/css">
+/* Only plain divs + explicit pixel sizes: the Mesquite WebKit on 5.18.1
+   does not lay out HTML5 sectioning elements or inline SVG reliably. */
+html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#fff; color:#000; font-family:Arial, Helvetica, sans-serif; }
+div { -webkit-box-sizing:border-box; box-sizing:border-box; }
+#app { position:relative; width:600px; height:680px; overflow:hidden; background:#fff; }
+
+#top { position:absolute; left:0; top:0; width:600px; height:64px; border-bottom:3px solid #000; background:#fff; }
+#gps-state { position:absolute; left:8px; top:8px; width:150px; height:46px; line-height:40px; border:3px solid #000; text-align:center; font-size:19px; font-weight:bold; white-space:nowrap; overflow:hidden; }
+#gps-state.ok { background:#000; color:#fff; }
+#gps-state.stale { background:#fff; color:#000; border-style:dashed; }
+#speed { position:absolute; left:170px; top:4px; width:190px; height:56px; line-height:56px; font-size:36px; font-weight:bold; white-space:nowrap; }
+#speed-unit { font-size:18px; }
+#heading { position:absolute; left:360px; top:6px; width:232px; height:26px; line-height:26px; font-size:20px; font-weight:bold; text-align:right; white-space:nowrap; }
+#detail-line { position:absolute; left:360px; top:34px; width:232px; height:22px; line-height:22px; font-size:15px; text-align:right; white-space:nowrap; }
+
+#map { position:absolute; left:0; top:64px; width:600px; height:510px; overflow:hidden; background:#fff; }
+#tiles { position:absolute; left:0; top:0; width:600px; height:510px; overflow:hidden; }
+.tile { position:absolute; width:256px; height:256px; border:0; }
+#trail { position:absolute; left:0; top:0; width:600px; height:510px; }
+.crumb { position:absolute; width:8px; height:8px; margin-left:-4px; margin-top:-4px; background:#000; }
+#marker { position:absolute; display:none; width:40px; height:40px; margin-left:-20px; margin-top:-20px; }
+#marker-halo { position:absolute; left:-6px; top:-6px; width:52px; height:52px; background:#fff; border-radius:26px; }
+#marker-ring { position:absolute; left:4px; top:4px; width:32px; height:32px; border:5px solid #000; background:#fff; border-radius:16px; }
+#marker-dot { position:absolute; left:14px; top:14px; width:12px; height:12px; background:#000; border-radius:6px; }
+#marker-arrow { position:absolute; left:0; top:0; width:40px; height:40px; display:none; }
+#marker-arrow-tip { position:absolute; left:6px; top:-24px; width:0; height:0; border-left:14px solid transparent; border-right:14px solid transparent; border-bottom:26px solid #000; }
+#marker.stale #marker-ring { border-style:dashed; }
+#marker.stale #marker-dot { background:#fff; }
+#map-note { position:absolute; left:10px; top:10px; padding:6px 10px; border:2px solid #000; background:#fff; font-size:15px; font-weight:bold; display:none; }
+#help { position:absolute; left:40px; top:120px; width:520px; padding:14px; border:3px solid #000; background:#fff; font-size:17px; line-height:24px; text-align:left; display:none; }
+#help b { font-size:19px; }
+
+/* navigation panel (replaces #top while a route is active) */
+#nav { position:absolute; left:0; top:0; width:600px; height:112px; border-bottom:3px solid #000; background:#fff; display:none; }
+#nav-icon-box { position:absolute; left:6px; top:6px; width:100px; height:100px; border:3px solid #000; background:#fff; }
+#nav-icon { position:absolute; left:0; top:0; width:96px; height:96px; }
+#nav-exit { position:absolute; left:58px; top:54px; width:36px; height:36px; line-height:32px; border:2px solid #000; background:#fff; font-size:24px; font-weight:bold; text-align:center; display:none; }
+#nav-dist { position:absolute; left:120px; top:2px; width:470px; height:50px; line-height:50px; font-size:44px; font-weight:bold; white-space:nowrap; overflow:hidden; }
+#nav-name { position:absolute; left:120px; top:52px; width:470px; height:30px; line-height:30px; font-size:23px; font-weight:bold; white-space:nowrap; overflow:hidden; }
+#nav-then { position:absolute; left:120px; top:82px; width:470px; height:24px; line-height:24px; font-size:16px; white-space:nowrap; overflow:hidden; }
+#route { position:absolute; left:0; top:0; width:600px; height:510px; }
+.rc { position:absolute; height:18px; background:#fff; -webkit-transform-origin:0 50%; transform-origin:0 50%; }
+.rl { position:absolute; height:9px; background:#000; -webkit-transform-origin:0 50%; transform-origin:0 50%; }
+.rj { position:absolute; width:9px; height:9px; margin-left:-4px; margin-top:-4px; background:#000; border-radius:5px; }
+#turn-dot { position:absolute; display:none; width:30px; height:30px; margin-left:-15px; margin-top:-15px; border:6px solid #000; background:#fff; border-radius:15px; }
+
+#controls { position:absolute; left:0; top:574px; width:600px; height:76px; border-top:3px solid #000; background:#fff; }
+.btn { position:absolute; top:8px; height:58px; line-height:52px; border:3px solid #000; background:#fff; color:#000; text-align:center; font-size:19px; font-weight:bold; white-space:nowrap; }
+.btn.active { background:#000; color:#fff; }
+.btn.square { font-size:34px; }
+
+#status { position:absolute; left:0; top:650px; width:600px; height:30px; border-top:2px solid #000; background:#fff; font-size:14px; line-height:26px; }
+#status-text { position:absolute; left:8px; top:0; width:420px; height:26px; font-weight:bold; white-space:nowrap; overflow:hidden; }
+#attribution { position:absolute; right:8px; top:0; width:170px; height:26px; text-align:right; font-size:11px; white-space:nowrap; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="top">
+    <div id="gps-state">INICIANDO</div>
+    <div id="speed">-- <span id="speed-unit">km/h</span></div>
+    <div id="heading">&nbsp;</div>
+    <div id="detail-line">&nbsp;</div>
+  </div>
+
+  <div id="nav">
+    <div id="nav-icon-box"><img id="nav-icon" src="icons/straight.png" alt=""><div id="nav-exit"></div></div>
+    <div id="nav-dist">&nbsp;</div>
+    <div id="nav-name">&nbsp;</div>
+    <div id="nav-then">&nbsp;</div>
+  </div>
+
+  <div id="map">
+    <div id="tiles"></div>
+    <div id="route"><div id="route-segs"></div><div id="turn-dot"></div></div>
+    <div id="trail"></div>
+    <div id="marker">
+      <div id="marker-halo"></div>
+      <div id="marker-arrow"><div id="marker-arrow-tip"></div></div>
+      <div id="marker-ring"></div>
+      <div id="marker-dot"></div>
+    </div>
+    <div id="map-note"></div>
+    <div id="help"></div>
+  </div>
+
+  <div id="controls">
+    <div id="btn-overview" class="btn active">GERAL</div>
+    <div id="btn-detail" class="btn">DETALHE</div>
+    <div id="btn-out" class="btn square">&minus;</div>
+    <div id="btn-in" class="btn square">+</div>
+    <div id="btn-follow" class="btn active">SEGUIR</div>
+  </div>
+
+  <div id="status">
+    <div id="status-text">Receptor: verificando…</div>
+    <div id="attribution">&copy; OpenStreetMap contributors</div>
+  </div>
+</div>
+<script type="text/javascript" src="map-pack/manifest.js"></script>
+<script type="text/javascript" src="app-dom.js"></script>
+</body>
+</html>

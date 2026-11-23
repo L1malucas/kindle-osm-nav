@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "name": "Salvador + Lauro de Freitas",
+  "attribution": "© OpenStreetMap contributors",
+  "center": {
+    "latitude": -12.9714,
+    "longitude": -38.5014
+  },
+  "overview_zoom": 10,
+  "detail_zoom": 14,
+  "tile_size": 256,
+  "tile_template": "tiles/{z}/{x}/{y}.png",
+  "tile_source": "local-generated-osm-pack",
+  "generated_at": "",
+  "bounds": {
+    "west": 0,
+    "south": 0,
+    "east": 0,
+    "north": 0
+  }
+}
