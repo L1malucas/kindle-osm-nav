@@ -21,7 +21,7 @@ com jailbreak SpringBreak e SSH pelo Jobman.
 
 - **Registro:** linha em `/var/local/appreg.db` (`handlerIds` e `properties`), com o comando `/usr/bin/mesquite -l <id> -c file:///var/local/mesquite/<pasta>/`. Abrir com `lipc-set-prop com.lab126.appmgrd start app://<id>`. Os launchers KWebBrew e Mesquito não cobrem a 5.18.1.1.1.
 - **Viewport:** a janela fica abaixo da barra do sistema, em 600×680 a partir de y=120. O `innerHeight` às vezes informa 800, e o layout limita a 680 (senão os botões saem da tela).
-- **Statusbar:** o **Jobman executa `stop statusbar`**. Sem ele (`com.lab126.chromebar` ausente no log), o Mesquite só repinta as regiões alteradas e a tela parece "agrupada no canto". O script Iniciar faz `start statusbar` antes de abrir o app.
+- **Statusbar:** o **Jobman executa `stop statusbar`**. Sem ele (`com.lab126.chromebar` ausente no log), o Mesquite só repinta as regiões alteradas e a tela parece "agrupada no canto". O `start-gps.sh` faz `start statusbar` antes de abrir o app.
 - **Elementos HTML:** usar só `div` com posição em pixels. Elementos HTML5 de seção e SVG inline não foram confiáveis; Canvas também não.
 - **Toque:** nenhum evento chegava ao DOM até o app:
   - tratar os callbacks `kindle.appmgr.onload` e `ongo`;
@@ -37,7 +37,7 @@ com jailbreak SpringBreak e SSH pelo Jobman.
 
 ## Rede
 
-- **Firewall:** `iptables` com política INPUT **DROP**. No `wlan0`, só a porta 22 aberta pelo Jobman. O Iniciar adiciona uma regra para a porta 8765, só em memória, e o Parar a remove.
+- **Firewall:** `iptables` com política INPUT **DROP**. No `wlan0`, só a porta 22 aberta pelo Jobman. O atalho **KindleMap GPS** adiciona, ao ligar, uma regra para a porta 8765, só em memória, e a remove ao desligar.
 - **`tcpsvd`** exporta `TCPREMOTEADDR="ip:porta"`, e não `TCPREMOTEIP`. O receptor só trata como local o endereço `127.0.0.1`.
 - **Rede USB do Jobman:** o Kindle aparece como adaptador RNDIS/Ethernet, não como disco. Kindle em `192.168.15.244`, computador em `192.168.15.201/24`, e o `iptables` libera tudo em `usb0`. É útil quando o SSH por Wi‑Fi cai depois que o Kindle dorme.
 - **Wi‑Fi:** desliga quando o Kindle dorme, e o receptor fica inacessível até acordar.

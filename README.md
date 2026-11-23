@@ -63,7 +63,7 @@ Detalhes do protocolo em [`docs/protocol.md`](docs/protocol.md). Os achados sobr
 
 ```
 kindle-map/          app WAF (index.html, app-dom.js, config.xml, icons/)
-kindle-map/receiver/ gpsd.lua, nav.lua, router.lua, scripts Iniciar/Parar/Atualizar
+kindle-map/receiver/ gpsd.lua, nav.lua, router.lua, atalho liga/desliga, scripts de início/parada e atualização
 tools/               osm_extract, build_tiles, build_graph, build_search, build_icons,
                      simulate_android, deploy-ssh, usb-install
 docs/                protocolo, notas do dispositivo, medições da etapa 1
@@ -94,12 +94,12 @@ python3 tools/build_icons.py      # kindle-map/icons        setas de manobra
    ```sh
    tools/deploy-ssh.sh IP_DO_KINDLE --data   # --data envia build/pack e build/data (~50 MB)
    ```
-   O `update-waf.sh` copia o app, põe o mapa em `/mnt/us/kindlemap/pack` (ligado ao app por symlink) e instala na biblioteca os atalhos **KindleMap GPS - Iniciar** e **KindleMap GPS - Parar**. Antes, faz backup do app anterior. Não mexe no sistema de arquivos raiz, que continua somente leitura.
+   O `update-waf.sh` copia o app, põe o mapa em `/mnt/us/kindlemap/pack` (ligado ao app por symlink) e instala na biblioteca o atalho **KindleMap GPS**, que liga e desliga o receptor. Antes, faz backup do app anterior. Não mexe no sistema de arquivos raiz, que continua somente leitura.
 4. **Remover:** rode `sh uninstall-waf.sh` e apague `/mnt/us/kindlemap` e os atalhos `kindlemap-*.sh` da pasta `documents/`.
 
 ## Uso
 
-1. Conecte o Kindle ao hotspot do celular. Na biblioteca, abra **KindleMap GPS - Iniciar**. Ele:
+1. Conecte o Kindle ao hotspot do celular. Na biblioteca, toque em **KindleMap GPS**. Com o receptor desligado, ele:
    - libera a porta 8765, só em memória;
    - inicia o receptor;
    - religa a barra de status (o Jobman a desliga);
@@ -116,7 +116,7 @@ python3 tools/build_icons.py      # kindle-map/icons        setas de manobra
    - **GERAL** e **DETALHE** mudam o nível de zoom.
 
    Os mesmos controles existem no celular, em `/control?token=TOKEN`.
-5. **Ao terminar:** abra **KindleMap GPS - Parar**. Ele fecha a porta, para o receptor e apaga a posição da memória. Reiniciar o Kindle também desfaz tudo.
+5. **Ao terminar:** toque de novo em **KindleMap GPS**. Com o receptor ligado, ele fecha a porta, para o receptor, apaga a posição da memória e mostra "KindleMap GPS desligado" no rodapé. Reiniciar o Kindle também desfaz tudo.
 
 O Kindle continua dormindo normalmente. Para manter a tela acesa durante o uso, crie o arquivo `/mnt/us/kindlemap/keep-awake`.
 
@@ -134,7 +134,7 @@ O simulador pede a rota, percorre o trajeto como um celular e, no fix 20, sai da
 - **Qualidade das instruções:** depende dos dados do OSM. Ruas sem nome geram instruções sem nome, e mudanças de grafia são ignoradas.
 - **Busca:** não tem número de casa.
 - **Atualização da tela:** a cada passo do mapa, o app pede uma atualização parcial sem piscar (`eips`, ~a cada 2 s em movimento) e uma piscada completa (`eips -f`) a cada ~30 s ou ao mudar o zoom. Entre as piscadas pode sobrar um pouco do "fantasma" típico do E Ink. Parado (deslocamento < 4 px), o mapa não é redesenhado.
-- **Jobman por cima do mapa:** abrir o Jobman durante o uso desliga a barra de status e o mapa fica por baixo. Rode **Iniciar** de novo.
+- **Jobman por cima do mapa:** abrir o Jobman durante o uso desliga a barra de status e o mapa fica por baixo. Toque em **KindleMap GPS** duas vezes (desliga e liga) para reabrir o mapa por cima.
 
 ## Licenças
 

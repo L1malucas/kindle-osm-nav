@@ -1,5 +1,5 @@
 #!/bin/sh
-# Name: KindleMap GPS - Iniciar
+# Name: KindleMap GPS - Iniciar (interno; use o atalho KindleMap GPS)
 # Author: Lucas
 # DontUseFBInk
 #

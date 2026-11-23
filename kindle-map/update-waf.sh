@@ -17,7 +17,7 @@ DOCS=/mnt/us/documents
 BACKUP_DIR=/mnt/us/kindlemap_backups
 
 for f in config.xml index.html app-dom.js receiver/gpsd.lua receiver/nav.lua receiver/router.lua \
-         receiver/start-gps.sh receiver/stop-gps.sh; do
+         receiver/start-gps.sh receiver/stop-gps.sh receiver/toggle-gps.sh; do
     [ -f "$SRC/$f" ] || { echo "Missing $SRC/$f"; exit 1; }
 done
 [ -d "$APPDIR" ] || { echo "$APPDIR not found; run install-waf.sh first."; exit 1; }
@@ -57,11 +57,13 @@ if [ -d "$SRC/data" ]; then
 fi
 
 cp "$SRC/receiver/gpsd.lua" "$SRC/receiver/nav.lua" "$SRC/receiver/router.lua" \
-   "$SRC/receiver/start-gps.sh" "$SRC/receiver/stop-gps.sh" "$BASE/"
+   "$SRC/receiver/start-gps.sh" "$SRC/receiver/stop-gps.sh" "$SRC/receiver/toggle-gps.sh" "$BASE/"
 
-# Library scriptlets (tap in the library to run).
-cp "$SRC/receiver/start-gps.sh" "$DOCS/kindlemap-gps-iniciar.sh"
-cp "$SRC/receiver/stop-gps.sh" "$DOCS/kindlemap-gps-parar.sh"
+# One library shortcut that starts or stops the receiver (replaces the old
+# separate "Iniciar" / "Parar" scriptlets).
+cp "$SRC/receiver/toggle-gps.sh" "$DOCS/kindlemap-gps.sh"
+rm -f "$DOCS/kindlemap-gps-iniciar.sh" "$DOCS/kindlemap-gps-parar.sh"
+rm -rf "$DOCS/kindlemap-gps-iniciar.sdr" "$DOCS/kindlemap-gps-parar.sdr"
 [ -f "$SRC/receiver/update-from-usb.sh" ] && cp "$SRC/receiver/update-from-usb.sh" "$DOCS/kindlemap-atualizar.sh"
 
 # Runtime files written by the receiver/router in RAM, reached from the app.

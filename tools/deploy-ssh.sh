@@ -25,4 +25,4 @@ COPYFILE_DISABLE=1 tar -cf - --exclude='._*' --exclude='.DS_Store' \
     -C "$ROOT/kindle-map" index.html app-dom.js config.xml update-waf.sh receiver icons $EXTRA |
 ssh "root@$HOST" 'rm -rf /mnt/us/kindlemap_staging && mkdir -p /mnt/us/kindlemap_staging &&
     tar -xf - -C /mnt/us/kindlemap_staging && sh /mnt/us/kindlemap_staging/update-waf.sh'
-echo "Done. On the Kindle, open 'KindleMap GPS - Iniciar' from the library."
+echo "Done. On the Kindle, tap 'KindleMap GPS' in the library (tap again to stop)."

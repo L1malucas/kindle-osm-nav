@@ -1,5 +1,5 @@
 #!/bin/sh
-# Name: KindleMap GPS - Parar
+# Name: KindleMap GPS - Parar (interno; use o atalho KindleMap GPS)
 # Author: Lucas
 # DontUseFBInk
 #

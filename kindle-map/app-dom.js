@@ -561,7 +561,7 @@
     if (!state.receiverOk) {
       html = '<b>Receptor de GPS desligado</b><br>' +
         'Conecte o Kindle ao hotspot do celular e abra, na biblioteca, ' +
-        '<b>KindleMap GPS - Iniciar</b>.';
+        '<b>KindleMap GPS</b>.';
     } else {
       html = '<b>Aguardando posição do celular</b><br>' +
         'OwnTracks (modo HTTP):<br>http://' + ip + ':8765/owntracks?token=' + token + '<br>' +
